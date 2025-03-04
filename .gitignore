@@ -11,6 +11,7 @@
 /ModernBERT-domain-classifier_local/
 /ModernBERT-domain-classifier_local_tokenizer/
 /modernbert_text_classification/
+/new_data/
 
 
 # Common exclusions (optional but recommended)

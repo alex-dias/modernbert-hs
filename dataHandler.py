@@ -1,11 +1,12 @@
 import pandas as pd
 from datasets import Dataset, DatasetDict
 
+# Get a list of all id_terms
+def getListOfIdTerms():
+    return ['asian', 'black', 'chinese', 'jewish', 'latino', 'lgbtq', 'mental_dis', 'mexican', 'middle_east', 'muslim', 'native_american', 'physical_dis', 'women', 'russian']
+
 # Create a DatasetDict from a DataFrame
 def createDDFromDF(df, test_size=0.2):
-    df = df[['generation', 'pred_label_notmasked']]
-    df = df.rename(columns={'generation': 'text', 'pred_label_notmasked': 'label'})
-    
     df_hate = df[df['label'] == 1]
     df_no_hate = df[df['label'] == 0]
     
@@ -31,15 +32,14 @@ def createDDFromDF(df, test_size=0.2):
     
 # Transform a DataFrame into two lists to be used in MFT test cases
 def createTestCaseList(df):
-    labels = df['pred_label_notmasked'].tolist()
-    labels = ["hate" if x == 1 else "no hate" for x in labels]
-    dct = {'text': df['generation'].tolist(), 'label': labels}
+    labels = df['label'].tolist()
+    dct = {'text': df['text'].tolist(), 'label': labels}
     return dct
     
 # Create a DatasetDict for a specific id_term
 def toxigenDataset(id_term, test_size=0.2, test_case=False, test_case_size=0.05, random_state=42):
-    file_name = 'toxigen_masked_pred_' + id_term + '.csv'
-    df = pd.read_csv('masked_data\\' + file_name)
+    file_name = id_term + '.csv'
+    df = pd.read_csv('new_data\\' + file_name)
     
     if test_case:
         df_test_case = df.sample(frac=test_case_size)
@@ -53,7 +53,7 @@ def getMultiToxigenDataset(id_terms, test_size=0.2, is_random=False, random_seed
     dfs = []
     
     for id_term in id_terms:
-        file_name = 'toxigen_masked_pred_' + id_term + '.csv'
+        file_name = id_term + '.csv'
         dfs.append(pd.read_csv('masked_data\\' + file_name))
     dfFinal = pd.concat(dfs, ignore_index=True)
         
@@ -66,3 +66,7 @@ def getMultiToxigenDataset(id_terms, test_size=0.2, is_random=False, random_seed
         return createDDFromDF(dfFinal, test_size), createTestCaseList(df_test_case)
         
     return createDDFromDF(dfFinal, test_size)
+
+def getAnnotadedRussTest():
+    df = pd.read_csv('new_data\\russ_annot.csv')
+    return createTestCaseList(df)
