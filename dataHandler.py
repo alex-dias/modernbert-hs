@@ -31,7 +31,10 @@ def createDDFromDF(df, test_size=0.2):
     
 # Transform a DataFrame into two lists to be used in MFT test cases
 def createTestCaseList(df):
-    return df['generation'].tolist(), df['pred_label_notmasked'].tolist()
+    labels = df['pred_label_notmasked'].tolist()
+    labels = ["hate" if x == 1 else "no hate" for x in labels]
+    dct = {'text': df['generation'].tolist(), 'label': labels}
+    return dct
     
 # Create a DatasetDict for a specific id_term
 def toxigenDataset(id_term, test_size=0.2, test_case=False, test_case_size=0.05, random_state=42):
@@ -44,7 +47,6 @@ def toxigenDataset(id_term, test_size=0.2, test_case=False, test_case_size=0.05,
         return createDDFromDF(df, test_size), createTestCaseList(df_test_case)
     
     return createDDFromDF(df, test_size)
-
     
 # Create a combined DatasetDict from multiple id_terms
 def getMultiToxigenDataset(id_terms, test_size=0.2, is_random=False, random_seed=42, test_case=False, test_case_size=0.05):
