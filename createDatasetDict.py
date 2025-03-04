@@ -1,10 +1,7 @@
 import pandas as pd
 from datasets import Dataset, DatasetDict
 
-def toxigenDataset(id_term, test_size=0.2):
-    file_name = 'toxigen_masked_pred_' + id_term + '.csv'
-    df = pd.read_csv('masked_data\\' + file_name)
-    
+def createDDFromDF(df, test_size=0.2):
     df = df[['generation', 'pred_label_notmasked']]
     df = df.rename(columns={'generation': 'text', 'pred_label_notmasked': 'label'})
     
@@ -30,3 +27,24 @@ def toxigenDataset(id_term, test_size=0.2):
             "train": df_train_dataset,
             "test": df_test_dataset
             })
+    
+    
+def toxigenDataset(id_term, test_size=0.2):
+    file_name = 'toxigen_masked_pred_' + id_term + '.csv'
+    df = pd.read_csv('masked_data\\' + file_name)
+    
+    return createDDFromDF(df, test_size)
+
+    
+def getMultiToxigenDataset(id_terms, test_size=0.2, is_random=False, random_seed=42):
+    dfs = []
+    
+    for id_term in id_terms:
+        file_name = 'toxigen_masked_pred_' + id_term + '.csv'
+        dfs.append(pd.read_csv('masked_data\\' + file_name))
+    dfFinal = pd.concat(dfs, ignore_index=True)
+        
+    if is_random:
+        dfFinal = dfFinal.sample(frac=1, random_state=random_seed)
+        
+    return createDDFromDF(dfFinal, test_size)

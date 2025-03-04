@@ -20,3 +20,5 @@ node_modules/
 __pycache__/
 *.log
 *.tmp
+test_cases.ipynb
+test.py
