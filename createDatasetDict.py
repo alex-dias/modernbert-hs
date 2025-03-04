@@ -1,6 +1,7 @@
 import pandas as pd
 from datasets import Dataset, DatasetDict
 
+# Create a DatasetDict from a DataFrame
 def createDDFromDF(df, test_size=0.2):
     df = df[['generation', 'pred_label_notmasked']]
     df = df.rename(columns={'generation': 'text', 'pred_label_notmasked': 'label'})
@@ -28,15 +29,25 @@ def createDDFromDF(df, test_size=0.2):
             "test": df_test_dataset
             })
     
+# Transform a DataFrame into two lists to be used in MFT test cases
+def createTestCaseList(df):
+    return df['generation'].tolist(), df['pred_label_notmasked'].tolist()
     
-def toxigenDataset(id_term, test_size=0.2):
+# Create a DatasetDict for a specific id_term
+def toxigenDataset(id_term, test_size=0.2, test_case=False, test_case_size=0.05, random_state=42):
     file_name = 'toxigen_masked_pred_' + id_term + '.csv'
     df = pd.read_csv('masked_data\\' + file_name)
+    
+    if test_case:
+        df_test_case = df.sample(frac=test_case_size)
+        df = df.drop(df_test_case.index)
+        return createDDFromDF(df, test_size), createTestCaseList(df_test_case)
     
     return createDDFromDF(df, test_size)
 
     
-def getMultiToxigenDataset(id_terms, test_size=0.2, is_random=False, random_seed=42):
+# Create a combined DatasetDict from multiple id_terms
+def getMultiToxigenDataset(id_terms, test_size=0.2, is_random=False, random_seed=42, test_case=False, test_case_size=0.05):
     dfs = []
     
     for id_term in id_terms:
@@ -46,5 +57,10 @@ def getMultiToxigenDataset(id_terms, test_size=0.2, is_random=False, random_seed
         
     if is_random:
         dfFinal = dfFinal.sample(frac=1, random_state=random_seed)
+        
+    if test_case:
+        df_test_case = dfFinal.sample(frac=test_case_size)
+        dfFinal = dfFinal.drop(df_test_case.index)
+        return createDDFromDF(dfFinal, test_size), createTestCaseList(df_test_case)
         
     return createDDFromDF(dfFinal, test_size)
