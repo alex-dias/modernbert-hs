@@ -1,7 +1,5 @@
-# Exclude all CSV files
 *.csv
 
-# Exclude specific folders (replace these with your folder names)
 /masked_data/
 /temp/
 /logs/
@@ -12,9 +10,8 @@
 /ModernBERT-domain-classifier_local_tokenizer/
 /modernbert_text_classification/
 /new_data/
+/embeddings/
 
-
-# Common exclusions (optional but recommended)
 .env
 .DS_Store
 node_modules/
@@ -23,3 +20,4 @@ __pycache__/
 *.tmp
 test_cases.ipynb
 test.py
+*.npy

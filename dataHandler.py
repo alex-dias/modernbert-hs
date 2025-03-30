@@ -69,6 +69,23 @@ def getMultiToxigenDataset(id_terms, test_size=0.2, is_random=False, random_seed
         
     return createDDFromDF(dfFinal, test_size)
 
+def getToxigenDatasetList(is_random=True, random_seed=42):
+    dfs = []
+    
+    for id_term in getListOfIdTerms()[:-1]:
+        file_name = id_term + '.csv'
+        dfs.append(pd.read_csv('new_data\\' + file_name))
+    dfFinal = pd.concat(dfs, ignore_index=True)
+        
+    if is_random:
+        dfFinal = dfFinal.sample(frac=1, random_state=random_seed)
+        
+    return dfFinal.text.tolist()
+
 def getAnnotadedRussTest():
     df = pd.read_csv('new_data\\russ_annot.csv')
     return createTestCaseList(df)
+
+def getAnnotadedRussTestList():
+    df = pd.read_csv('new_data\\russ_annot_masked.csv')
+    return df.text.tolist()
