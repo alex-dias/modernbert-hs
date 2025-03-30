@@ -7,6 +7,8 @@ def getListOfIdTerms():
 
 # Create a DatasetDict from a DataFrame
 def createDDFromDF(df, test_size=0.2):
+    df['label'] = df['label'].apply(lambda x: 1 if x == 'hate' else 0)
+    
     df_hate = df[df['label'] == 1]
     df_no_hate = df[df['label'] == 0]
     
@@ -54,7 +56,7 @@ def getMultiToxigenDataset(id_terms, test_size=0.2, is_random=False, random_seed
     
     for id_term in id_terms:
         file_name = id_term + '.csv'
-        dfs.append(pd.read_csv('masked_data\\' + file_name))
+        dfs.append(pd.read_csv('new_data\\' + file_name))
     dfFinal = pd.concat(dfs, ignore_index=True)
         
     if is_random:
