@@ -89,3 +89,18 @@ def getAnnotadedRussTest():
 def getAnnotadedRussTestList():
     df = pd.read_csv('new_data\\russ_annot_masked.csv')
     return df.text.tolist()
+
+def getToxigenDatasetListClass(is_random=False, random_seed=42):
+    dfs = []
+    
+    for id_term in getListOfIdTerms()[:-1]:
+        file_name = id_term + '.csv'
+        df = pd.read_csv('new_data\\' + file_name)
+        df['term'] = id_term
+        dfs.append(df)
+    dfFinal = pd.concat(dfs, ignore_index=True)
+        
+    if is_random:
+        dfFinal = dfFinal.sample(frac=1, random_state=random_seed)
+        
+    return dfFinal[["text", "term"]]
