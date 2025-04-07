@@ -104,3 +104,7 @@ def getToxigenDatasetListClass(is_random=False, random_seed=42):
         dfFinal = dfFinal.sample(frac=1, random_state=random_seed)
         
     return dfFinal[["text", "term"]]
+
+def getCompleteRussDataset():
+    df = pd.read_csv('new_data\\completeDataset_inference.csv')
+    return df["Tweet Treated"].tolist()

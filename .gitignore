@@ -11,6 +11,7 @@
 /modernbert_text_classification/
 /new_data/
 /embeddings/
+/context/
 
 .env
 .DS_Store
