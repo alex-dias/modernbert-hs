@@ -103,7 +103,7 @@ def getToxigenDatasetListClass(is_random=False, random_seed=42):
     if is_random:
         dfFinal = dfFinal.sample(frac=1, random_state=random_seed)
         
-    return dfFinal[["text", "term"]]
+    return dfFinal[["text", "term", "label"]]
 
 def getCompleteRussDataset():
     df = pd.read_csv('new_data\\completeDataset_inference.csv')
