@@ -83,7 +83,7 @@ def getToxigenDatasetList(is_random=True, random_seed=42):
     return dfFinal.text.tolist()
 
 def getAnnotadedRussTest():
-    df = pd.read_csv('new_data\\russ_annot.csv')
+    df = pd.read_csv('new_data\\russ_annot_masked.csv')
     return createTestCaseList(df)
 
 def getAnnotadedRussTestList():

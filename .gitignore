@@ -12,6 +12,7 @@
 /new_data/
 /embeddings/
 /context/
+/models_knn/
 
 .env
 .DS_Store

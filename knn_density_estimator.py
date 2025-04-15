@@ -81,7 +81,7 @@ def faiss_knn_density(query_vectors, reference_vectors, k, normalize_vectors=Tru
     
     return distances, indices, density_log
 
-def select_high_density_samples(densities, origin_dataset_term, origin_dataset_text, origin_dataset_label, top_k=0.01):
+def select_high_density_samples(densities, origin_dataset_term, origin_dataset_text, origin_dataset_label, top_k=0.01, is_balanced=False):  
     """
     Select samples with highest density estimates. And get the original text, term and labels,
     """
@@ -99,12 +99,22 @@ def select_high_density_samples(densities, origin_dataset_term, origin_dataset_t
     else:
         num_to_select = min(int(top_k), len(densities))
     
-    df_sorted = df.sort_values(by='density', ascending=False)
-    selected_samples = df_sorted.head(num_to_select)
+    if is_balanced:
+        num_to_select = round(num_to_select/2)
+        df_hate = df[df['label'] == 'hate']
+        df_no_hate = df[df['label'] == 'no hate']
+        
+        df_hate_sorted = df_hate.sort_values(by='density', ascending=False).head(num_to_select)
+        df_no_hate_sorted = df_no_hate.sort_values(by='density', ascending=False).head(num_to_select)
+        selected_samples = pd.concat([df_hate_sorted, df_no_hate_sorted])
+        
+    else:
+        df_sorted = df.sort_values(by='density', ascending=False)
+        selected_samples = df_sorted.head(num_to_select)
     
     return selected_samples
 
-def run_knn_density_estimation(embeddings_a_path, embeddings_b_path, text_b_path, k=101, percent=0.01, output_path='selected_samples.csv', use_gpu=False):
+def run_knn_density_estimation(embeddings_a_path, embeddings_b_path, text_b_path, balanced, k=101, percent=0.01, output_path='selected_samples.csv', use_gpu=False):
     """
     Run KNN density estimation 
     """
@@ -170,7 +180,7 @@ def run_knn_density_estimation(embeddings_a_path, embeddings_b_path, text_b_path
     # Select high density samples
     logger.info(f"Selecting top {percent*100:.2f}% samples with highest density")
     result_df = select_high_density_samples(
-        densities, origin_dataset_term=dataset_B['term'], origin_dataset_text=dataset_B['text'], origin_dataset_label=dataset_B['label'], top_k=percent
+        densities, origin_dataset_term=dataset_B['term'], origin_dataset_text=dataset_B['text'], origin_dataset_label=dataset_B['label'], top_k=percent, is_balanced=balanced
     )
     logger.info(f"Selected {len(result_df)} samples")
     
