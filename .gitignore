@@ -14,6 +14,7 @@
 /context/
 /models_knn/
 /modernbert_ensemble/
+/term_embeddings/
 
 .env
 .DS_Store
@@ -21,6 +22,7 @@ node_modules/
 __pycache__/
 *.log
 *.tmp
+*.png
 test_cases.ipynb
 test.py
 *.npy
