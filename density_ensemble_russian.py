@@ -134,7 +134,11 @@ class DensityWeightedEnsemble:
         hate_predictions = weighted_scores >= 0.5
         
         # Confidence is max of score or 1-score
-        confidences = np.maximum(weighted_scores, 1 - weighted_scores)
+        # confidences = np.maximum(weighted_scores, 1 - weighted_scores)
+        
+        confidences = weighted_scores
+        
+        # print(confidences)
         
         # Convert to strings and list
         final_predictions = ["hate" if pred else "no hate" for pred in hate_predictions]
@@ -248,7 +252,7 @@ class EnsembleClassifier:
             hate_predictions = vote_counts > (len(self.term_names) / 2)
             
             # Calculate confidence as proportion of votes
-            confidences = np.maximum(vote_counts, len(self.term_names) - vote_counts) / len(self.term_names)
+            confidences = vote_counts / len(self.term_names)
             
             # Convert to strings and list
             final_predictions = ["hate" if pred else "no hate" for pred in hate_predictions]
