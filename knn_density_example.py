@@ -20,9 +20,9 @@ def main():
     
     # Run the KNN density estimator
     print("\nRunning KNN Density Estimator...")
-    k = [10, 100, 1000]
+    k = [5, 100, 1000]
     bal = [True, False]
-    percent = 0.001
+    percent = 1
     
     for k_val in k:
         for balanced in bal:
@@ -32,9 +32,9 @@ def main():
             dataset_B_path = 'embeddings/dataset_B.csv'
             
             if not balanced:
-                output_path=f"selected_knn_few/samples_knn_k{k_val}_percent{int(percent*100)}.csv"
+                output_path=f"selected_knn_new/samples_knn_k{k_val}_percent{int(percent*100)}.csv"
             else:
-                output_path=f"selected_knn_few/samples_knn_k{k_val}_percent{int(percent*100)}_balanced.csv"
+                output_path=f"selected_knn_new/samples_knn_k{k_val}_percent{int(percent*100)}_balanced.csv"
             
             # Call the function
             results = run_knn_density_estimation(

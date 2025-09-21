@@ -36,7 +36,7 @@ def load_term_embeddings(term, base_path='term_embeddings'):
         logger.error(f"Error loading embeddings for {term}: {e}")
         return None
 
-def calculate_densities_to_russian(term_embeddings, russian_embeddings, k=100, use_gpu=True):
+def calculate_densities_to_russian(term_embeddings, russian_embeddings, k=1000, use_gpu=True):
     """Calculate k-nn densities from term embeddings to Russian embeddings."""
     try:
         _, _, density_log = faiss_knn_density(

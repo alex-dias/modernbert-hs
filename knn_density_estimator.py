@@ -94,7 +94,7 @@ def select_high_density_samples(densities, origin_dataset_term, origin_dataset_t
     })
     
     # Determine number of samples to select
-    if top_k < 1:
+    if top_k <= 1:
         num_to_select = int(top_k * len(densities))
     else:
         num_to_select = min(int(top_k), len(densities))
