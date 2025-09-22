@@ -13,6 +13,7 @@
 /embeddings/
 /context/
 /models_knn/
+/models_knn_test/
 /modernbert_ensemble/
 /term_embeddings/
 
