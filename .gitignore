@@ -14,6 +14,7 @@
 /context/
 /models_knn/
 /models_knn_test/
+/models_knn_tox/
 /modernbert_ensemble/
 /term_embeddings/
 
