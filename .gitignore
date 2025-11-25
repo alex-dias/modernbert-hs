@@ -15,8 +15,10 @@
 /models_knn/
 /models_knn_test/
 /models_knn_tox/
+/models_knn_tox_refactored/
 /modernbert_ensemble/
 /term_embeddings/
+/errors/
 
 .env
 .DS_Store
