@@ -19,6 +19,7 @@
 /modernbert_ensemble/
 /term_embeddings/
 /errors/
+/results/
 
 .env
 .DS_Store
