@@ -31,4 +31,5 @@ __pycache__/
 test_cases.ipynb
 test.py
 *.npy
+*.zip
 save_dataset_b.py
