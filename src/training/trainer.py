@@ -95,6 +95,7 @@ def load_density_dataset(
         
         # Test weights (using the same normalization as train)
         raw_test = test_df[config.density_column].values.astype(float)
+        raw_test = np.clip(raw_test, a_min=None, a_max=max_allowed)
         raw_test = raw_test - min_val + 1e-6
         test_weights = raw_test / raw_test.mean()
 
