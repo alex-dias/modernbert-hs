@@ -63,7 +63,8 @@ def knn_log_density(
     kth_distances = distances[:, k]
 
     # Guard against zero / negative distances (exact duplicates)
-    kth_distances = np.maximum(kth_distances, 1e-10)
+    # Using sqrt to make it euclidean distance from faiss squared distance
+    kth_distances = np.sqrt(np.maximum(kth_distances, 1e-10))
 
     log_vol = (d / 2) * np.log(np.pi) + d * np.log(kth_distances) - loggamma(d / 2 + 1)
     density_log = np.log(k) - np.log(n) - log_vol
@@ -75,8 +76,14 @@ def density_ratio(density_a: np.ndarray, density_all: np.ndarray) -> np.ndarray:
     """
     Compute the density ratio p_a(x) / p_all(x) in linear scale.
     Inputs are log-densities; output is the exponentiated difference.
+
+    Using centering around max log-density to prevent overflow/underflow.
     """
-    return np.exp(density_a - density_all)
+    diff = density_a - density_all
+
+    diff = diff - np.max(diff)
+
+    return np.exp(diff)
 
 
 # ---------------------------------------------------------------------------

@@ -52,7 +52,7 @@ training:
   output_root: outputs/3_training
   models:
     - answerdotai/ModernBERT-base
-  epochs: 1
+  epochs: 3
   batch_size: 16
   learning_rate: 2e-5
   max_length: 128

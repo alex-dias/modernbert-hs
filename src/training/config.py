@@ -27,12 +27,12 @@ class TrainingConfig:
     # ---- Training ----
     batch_size: int = 16
     learning_rate: float = 2e-5
-    num_epochs: int = 1
+    num_epochs: int = 3
     warmup_ratio: float = 0.1
     weight_decay: float = 0.01
     logging_steps: int = 50
-    eval_steps: int = 1000
-    save_steps: int = 1000
+    eval_steps: int = 2000
+    save_steps: int = 2000
     save_total_limit: int = 2
     random_state: int = 42
     fp16: bool = False           # set True if GPU supports it
