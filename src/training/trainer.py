@@ -52,7 +52,7 @@ def load_density_dataset(
     Returns
     -------
     dataset     : DatasetDict with "train" and "test" splits
-    weights     : (N_train,) float array of sample weights, or None
+    weights     : dict with "train" and "test" float arrays of sample weights, or None
     """
     df = pd.read_csv(density_csv)
 
@@ -81,12 +81,27 @@ def load_density_dataset(
     # Extract sample weights before dropping columns
     weights = None
     if config.density_column and config.density_column in train_df.columns:
-        raw_weights = train_df[config.density_column].values.astype(float)
-        # Shift to positive range and normalise to mean=1
-        raw_weights = raw_weights - raw_weights.min() + 1e-6
-        weights = raw_weights / raw_weights.mean()
+        # Train weights
+        raw_train = train_df[config.density_column].values.astype(float)
+
+        # raw_train = raw_train ** 0.5 # Weight Smoothing
+
+        max_allowed = np.percentile(raw_train, 95)  # e.g., the top 5% boundary
+        raw_train = np.clip(raw_train, a_min=None, a_max=max_allowed)
+
+        min_val = raw_train.min()
+        raw_train = raw_train - min_val + 1e-6
+        train_weights = raw_train / raw_train.mean()
+        
+        # Test weights (using the same normalization as train)
+        raw_test = test_df[config.density_column].values.astype(float)
+        raw_test = raw_test - min_val + 1e-6
+        test_weights = raw_test / raw_test.mean()
+
+        weights = {"train": train_weights, "test": test_weights}
+
         logger.info("Sample weights from '%s': min=%.4f max=%.4f mean=%.4f",
-                    config.density_column, weights.min(), weights.max(), weights.mean())
+                    config.density_column, train_weights.min(), train_weights.max(), train_weights.mean())
     else:
         if config.density_column:
             logger.warning("Density column '%s' not found — training without weights", config.density_column)
@@ -103,28 +118,41 @@ def load_density_dataset(
 # Metrics
 # ---------------------------------------------------------------------------
 
-def compute_metrics(pred: EvalPrediction) -> dict:
-    logits = pred.predictions
-    labels = pred.label_ids
-    preds  = np.argmax(logits, axis=1)
-    probs  = torch.softmax(torch.tensor(logits, dtype=torch.float32), dim=1)[:, 1].numpy()
+def get_compute_metrics(eval_dataset: Dataset | None = None):
+    def compute_metrics(pred: EvalPrediction) -> dict:
+        logits = pred.predictions
+        labels = pred.label_ids
+        preds  = np.argmax(logits, axis=1)
+        probs  = torch.softmax(torch.tensor(logits, dtype=torch.float32), dim=1)[:, 1].numpy()
 
-    acc     = accuracy_score(labels, preds)
-    bal_acc = balanced_accuracy_score(labels, preds)
-    prec, rec, f1, _ = precision_recall_fscore_support(labels, preds, average="binary", zero_division=0)
-    try:
-        auc = roc_auc_score(labels, probs)
-    except Exception:
-        auc = float("nan")
+        weights = None
+        if eval_dataset is not None and "weight" in eval_dataset.column_names:
+            ds_labels = np.array(eval_dataset["labels"])
+            if len(labels) == len(ds_labels) and np.array_equal(labels, ds_labels):
+                weights = np.array(eval_dataset["weight"])
+            else:
+                import logging
+                logging.getLogger(__name__).warning(
+                    "Labels in EvalPrediction do not match eval_dataset. Using unweighted metrics."
+                )
 
-    return {
-        "accuracy": acc,
-        "balanced_accuracy": bal_acc,
-        "precision": prec,
-        "recall": rec,
-        "f1": f1,
-        "auc_roc": auc,
-    }
+        acc     = accuracy_score(labels, preds, sample_weight=weights)
+        bal_acc = balanced_accuracy_score(labels, preds, sample_weight=weights)
+        prec, rec, f1, _ = precision_recall_fscore_support(labels, preds, average="binary", zero_division=0, sample_weight=weights)
+        try:
+            auc = roc_auc_score(labels, probs, sample_weight=weights)
+        except Exception:
+            auc = float("nan")
+
+        return {
+            "accuracy": acc,
+            "balanced_accuracy": bal_acc,
+            "precision": prec,
+            "recall": rec,
+            "f1": f1,
+            "auc_roc": auc,
+        }
+    return compute_metrics
 
 
 # ---------------------------------------------------------------------------
@@ -195,9 +223,10 @@ def train(
     # 1. Load data
     dataset, sample_weights = load_density_dataset(density_csv, config, test_size, config.random_state)
 
-    # 2. Inject weights into train split as a feature
+    # 2. Inject weights into splits as a feature
     if sample_weights is not None:
-        dataset["train"] = dataset["train"].add_column("weight", sample_weights.tolist())
+        dataset["train"] = dataset["train"].add_column("weight", sample_weights["train"].tolist())
+        dataset["test"]  = dataset["test"].add_column("weight", sample_weights["test"].tolist())
 
     # 3. Tokenise
     tokenizer = AutoTokenizer.from_pretrained(config.model_id)
@@ -233,12 +262,13 @@ def train(
         save_steps=config.save_steps,
         save_total_limit=config.save_total_limit,
         load_best_model_at_end=True,
-        metric_for_best_model="f1",
+        metric_for_best_model="auc_roc",
         logging_steps=config.logging_steps,
         fp16=config.fp16,
         bf16=config.bf16,
         seed=config.random_state,
         report_to="none",
+        remove_unused_columns=False,
     )
 
     # 6. Trainer
@@ -251,8 +281,7 @@ def train(
         eval_dataset=dataset["test"],
         processing_class=tokenizer,
         data_collator=DataCollatorWithPadding(tokenizer),
-        compute_metrics=compute_metrics,
-        callbacks=[EarlyStoppingCallback(early_stopping_patience=3)],
+        compute_metrics=get_compute_metrics(dataset["test"]),
     )
 
     # 7. Train
