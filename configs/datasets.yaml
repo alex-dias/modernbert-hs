@@ -45,14 +45,14 @@ embedding:
     - sentence-transformers/all-mpnet-base-v2
   batch_size: 32
   k_values: [5, 100, 1000]
-  pca_components: 128
+  # pca_components: 128
   use_gpu: true
 
 training:
   output_root: outputs/3_training
   models:
     - answerdotai/ModernBERT-base
-  epochs: 3
+  epochs: 1
   batch_size: 16
   learning_rate: 2e-5
   max_length: 128

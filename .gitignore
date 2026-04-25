@@ -21,6 +21,11 @@
 /errors/
 /results/
 /unsloth_compiled_cache/
+/data/
+/outputs/1_preprocessed/
+/outputs/2_embeddings/
+/outputs/3_training/
+/outputs/4_evaluation/
 
 .env
 .DS_Store

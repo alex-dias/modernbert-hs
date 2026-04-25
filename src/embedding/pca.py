@@ -64,7 +64,7 @@ def select_n_components(
     elif method == "threshold":
         n = td
     else:
-        n = max(ed, td)
+        n = min(ed, td)
     return n, ed, td
 
 

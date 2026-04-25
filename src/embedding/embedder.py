@@ -26,6 +26,7 @@ def embed_dataset(
     output_root: str = "outputs/2_embeddings",
     batch_size: int = 32,
     split: str = "full",
+    use_gpu: bool = False,
 ) -> np.ndarray:
     """
     Generate and save embeddings for one dataset split.
@@ -38,6 +39,7 @@ def embed_dataset(
     output_root      : root to save embeddings
     batch_size       : encoding batch size
     split            : "full", "train", or "test"
+    use_gpu          : place the model on CUDA if available
 
     Returns
     -------
@@ -51,7 +53,7 @@ def embed_dataset(
     texts = df["text"].astype(str).tolist()
     logger.info("[%s] Loaded %d texts from %s", dataset_name, len(texts), csv_path)
 
-    model = _load_model(model_name)
+    model = _load_model(model_name, use_gpu)
     logger.info("[%s] Encoding with %s ...", dataset_name, model_name)
     embeddings = model.encode(texts, batch_size=batch_size, show_progress_bar=True, convert_to_numpy=True)
     embeddings = embeddings.astype(np.float32)
@@ -71,12 +73,13 @@ def embed_texts(
     model_name: str,
     out_path: str | None = None,
     batch_size: int = 32,
+    use_gpu: bool = False,
 ) -> np.ndarray:
     """
     Embed an arbitrary list of texts (e.g. the Russian full corpus).
     Optionally save to out_path.
     """
-    model = _load_model(model_name)
+    model = _load_model(model_name, use_gpu)
     embeddings = model.encode(texts, batch_size=batch_size, show_progress_bar=True, convert_to_numpy=True)
     embeddings = embeddings.astype(np.float32)
     if out_path:
@@ -91,8 +94,12 @@ def embed_texts(
 # ---------------------------------------------------------------------------
 _MODEL_CACHE: dict[str, SentenceTransformer] = {}
 
-def _load_model(model_name: str) -> SentenceTransformer:
+def _load_model(model_name: str, use_gpu: bool = False) -> SentenceTransformer:
     if model_name not in _MODEL_CACHE:
-        logger.info("Loading model: %s", model_name)
-        _MODEL_CACHE[model_name] = SentenceTransformer(model_name)
+        import torch
+        device = "cuda" if use_gpu and torch.cuda.is_available() else "cpu"
+        if use_gpu and device == "cpu":
+            logger.warning("use_gpu=True but CUDA is not available — falling back to CPU")
+        logger.info("Loading model: %s  (device=%s)", model_name, device)
+        _MODEL_CACHE[model_name] = SentenceTransformer(model_name, device=device)
     return _MODEL_CACHE[model_name]

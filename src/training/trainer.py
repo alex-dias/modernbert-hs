@@ -62,11 +62,13 @@ def load_density_dataset(
         raise ValueError(f"'text' column missing in {density_csv}")
 
     # Normalise labels to int
-    label2id = config.label2id
-    if df["label"].dtype == object:
-        df["label"] = df["label"].map(label2id)
+    if len(df) > 0 and isinstance(df["label"].iloc[0], str):
+        df["label"] = df["label"].astype(str).str.strip().map(config.label2id)
 
+    # Coerce to numeric (unmapped strings become NaN) and cast to int
+    df["label"] = pd.to_numeric(df["label"], errors="coerce")
     df = df.dropna(subset=["label", "text"]).reset_index(drop=True)
+    df["label"] = df["label"].astype(int)
 
     # Stratified split
     from sklearn.model_selection import train_test_split
@@ -222,10 +224,10 @@ def train(
         num_train_epochs=config.num_epochs,
         per_device_train_batch_size=config.batch_size,
         per_device_eval_batch_size=config.batch_size,
-        learning_rate=config.learning_rate,
-        warmup_ratio=config.warmup_ratio,
-        weight_decay=config.weight_decay,
-        evaluation_strategy="steps",
+        learning_rate=float(config.learning_rate),
+        warmup_ratio=float(config.warmup_ratio),
+        weight_decay=float(config.weight_decay),
+        eval_strategy="steps",
         eval_steps=config.eval_steps,
         save_strategy="steps",
         save_steps=config.save_steps,
@@ -247,7 +249,7 @@ def train(
         args=training_args,
         train_dataset=dataset["train"],
         eval_dataset=dataset["test"],
-        tokenizer=tokenizer,
+        processing_class=tokenizer,
         data_collator=DataCollatorWithPadding(tokenizer),
         compute_metrics=compute_metrics,
         callbacks=[EarlyStoppingCallback(early_stopping_patience=3)],

@@ -62,6 +62,7 @@ def _embed_all(
     preprocessed_root: str,
     embeddings_root: str,
     batch_size: int,
+    use_gpu: bool = False,
 ) -> dict[str, np.ndarray]:
     """Generate (or load cached) full-split embeddings for every dataset."""
     slug = _model_slug(model_name)
@@ -80,6 +81,7 @@ def _embed_all(
                 output_root=embeddings_root,
                 batch_size=batch_size,
                 split="full",
+                use_gpu=use_gpu,
             )
 
     return result
@@ -136,6 +138,7 @@ def _embed_russian_corpus(
     model_name: str,
     embeddings_root: str,
     batch_size: int,
+    use_gpu: bool = False,
 ) -> np.ndarray:
     """
     Embed the full unlabeled Russian corpus (used as KNN reference only).
@@ -152,7 +155,7 @@ def _embed_russian_corpus(
     proc = RussianProcessor(annotated_path="", full_corpus_path=full_corpus_path)
     texts = proc.load_full_corpus()
     logger.info("[russian] Embedding %d texts from full corpus ...", len(texts))
-    return embed_texts(texts, model_name, out_path=out_path, batch_size=batch_size)
+    return embed_texts(texts, model_name, out_path=out_path, batch_size=batch_size, use_gpu=use_gpu)
 
 
 def _build_group_index(
@@ -339,7 +342,11 @@ def run(
         k_values = k_values or emb_cfg.get("k_values", [5, 100, 1000])
         model_name = emb_cfg.get("models", [model_name])[0]
         batch_size = emb_cfg.get("batch_size", batch_size)
-        use_gpu = emb_cfg.get("use_gpu", use_gpu)
+        # Caller-supplied use_gpu takes precedence; only fall back to config when
+        # the function was called with the default (False), meaning the caller
+        # didn't explicitly set it.
+        if not use_gpu:  # use_gpu is False only when caller didn't override it
+            use_gpu = emb_cfg.get("use_gpu", use_gpu)
         n_pca = emb_cfg.get("pca_components", n_pca_components)
         preprocessed_root = cfg.get("preprocessing", {}).get("output_root", preprocessed_root)
         embeddings_root = emb_cfg.get("output_root", embeddings_root)
@@ -362,13 +369,13 @@ def run(
     logger.info("PCA components: %s (%s)", n_pca, pca_method)
 
     # 1+2: embed all datasets (Russian annotated set → full.npy, used as query)
-    embeddings_map = _embed_all(datasets, model_name, preprocessed_root, embeddings_root, batch_size)
+    embeddings_map = _embed_all(datasets, model_name, preprocessed_root, embeddings_root, batch_size, use_gpu)
 
     # 2b: embed Russian full corpus for use as KNN reference (separate from annotated set)
     russian_corpus_emb: np.ndarray | None = None
     if reference_group in datasets and russian_full_corpus_path:
         russian_corpus_emb = _embed_russian_corpus(
-            russian_full_corpus_path, model_name, embeddings_root, batch_size
+            russian_full_corpus_path, model_name, embeddings_root, batch_size, use_gpu
         )
     elif reference_group in datasets:
         logger.warning("full_corpus_path not configured — Russian KNN reference uses annotated set only")

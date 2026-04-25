@@ -66,7 +66,7 @@ class BaseProcessor:
 
     def process(self) -> dict[str, pd.DataFrame]:
         """
-        Full pipeline: load → validate → clean → split → save.
+        Full pipeline: load -> validate -> clean -> split -> save.
         Returns {"full": df, "train": df_train, "test": df_test}.
         """
         os.makedirs(self.output_dir, exist_ok=True)
@@ -81,7 +81,7 @@ class BaseProcessor:
         train.to_csv(os.path.join(self.output_dir, "train.csv"), index=False)
         test.to_csv(os.path.join(self.output_dir, "test.csv"), index=False)
 
-        print(f"[{self.dataset_name}] Saved {len(df)} samples → {self.output_dir}")
+        print(f"[{self.dataset_name}] Saved {len(df)} samples -> {self.output_dir}")
         print(f"  Train: {len(train)} | Test: {len(test)}")
         print(f"  Labels: {df['label'].value_counts().to_dict()}")
         print(f"  Groups: {sorted(df['group'].unique().tolist())}")
