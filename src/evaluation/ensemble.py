@@ -92,14 +92,14 @@ def discover_specialist_models(
             continue
 
         for run_name in os.listdir(model_dir):
-            if not run_name.endswith("__specialist"):
+            if "__specialist" not in run_name:
                 continue
 
             model_path = os.path.join(model_dir, run_name, "model")
             if not os.path.isdir(model_path):
                 continue
 
-            group = run_name.replace("__specialist", "")
+            group = run_name.split("__specialist")[0]
             specialists.append({
                 "group":      group,
                 "model_slug": slug,
@@ -163,23 +163,50 @@ def compute_group_weights(
     return weights
 
 
-def normalise_weights(raw_weights: dict[str, float]) -> dict[str, float]:
+def normalise_weights(
+    raw_weights: dict[str, float],
+    method: str = "softmax",
+    temperature: float = 5.0,
+) -> dict[str, float]:
     """
-    Shift-and-normalise a dict of raw log-density weights.
+    Normalise a dict of raw log-density weights into voting weights.
 
-    Subtracts the minimum so the least-similar group gets weight 0, then
-    divides by the sum so weights sum to 1.  Falls back to uniform weights
-    if all values are identical.
+    Parameters
+    ----------
+    raw_weights : {group: raw_log_density}
+    method      : "softmax" or "linear"
+                  - "softmax": Standard for log-scores. exp(w/T) / sum(exp(w/T)).
+                  - "linear" : Shifted linear scaling (w - min + floor).
+    temperature : Smoothing factor for softmax. Higher = more uniform.
+                  With log-densities in range [160, 180], T=5.0 gives a good spread.
+
+    Returns
+    -------
+    {group: weight} summing to 1.0.
     """
+    keys = list(raw_weights.keys())
     values = np.array(list(raw_weights.values()), dtype=float)
-    shifted = values - values.min()
-    total = shifted.sum()
-    if total == 0:
+
+    if len(values) == 0:
+        return {}
+
+    if np.all(values == values[0]):
         logger.warning("All group weights are identical — using uniform weights")
-        normed = np.ones(len(shifted)) / len(shifted)
-    else:
-        normed = shifted / total
-    return {g: float(w) for g, w in zip(raw_weights.keys(), normed)}
+        normed = np.ones(len(values)) / len(values)
+    elif method == "softmax":
+        # Subtract max for numerical stability
+        v_stable = (values - values.max()) / temperature
+        exp_v = np.exp(v_stable)
+        normed = exp_v / exp_v.sum()
+    else:  # linear
+        # Shift by min and add a small floor (10% of range) to ensure every weight counts
+        v_min = values.min()
+        v_range = values.max() - v_min
+        floor = 0.1 * v_range if v_range > 0 else 1.0
+        shifted = (values - v_min) + floor
+        normed = shifted / shifted.sum()
+
+    return {g: float(w) for g, w in zip(keys, normed)}
 
 
 # ---------------------------------------------------------------------------
@@ -249,6 +276,8 @@ def evaluate_ensemble(
     max_length: int = 128,
     bootstrap: bool = True,
     n_bootstrap: int = 1000,
+    norm_method: str = "softmax",
+    norm_temperature: float = 5.0,
 ) -> dict:
     """
     Evaluate the specialist ensemble on the Russian annotated test set.
@@ -291,8 +320,9 @@ def evaluate_ensemble(
 
     # Compute and normalise group weights from ToxiGen densities
     raw_weights = compute_group_weights(toxigen_densities_csv, k, space)
-    norm_weights = normalise_weights(raw_weights)
-    logger.info("Normalised weights: %s",
+    norm_weights = normalise_weights(raw_weights, method=norm_method, temperature=norm_temperature)
+    logger.info("Normalised weights (%s, T=%.1f): %s",
+                norm_method, norm_temperature,
                 {g: f"{w:.4f}" for g, w in sorted(norm_weights.items(), key=lambda x: -x[1])})
 
     # Run inference on each specialist
@@ -348,6 +378,8 @@ def evaluate_ensemble(
     metrics["space"]     = space
     metrics["k"]         = k
     metrics["model_slug"] = model_slug
+    metrics["norm_method"] = norm_method
+    metrics["norm_temp"]   = norm_temperature
     metrics["n_groups"]  = len(available_groups)
     metrics["groups"]    = available_groups
     metrics["weights"]   = {g: float(w) for g, w in zip(available_groups, weights)}

@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 # Model discovery
 # ---------------------------------------------------------------------------
 
-def discover_models(training_root: str) -> list[dict]:
+def discover_models(training_root: str, specialists: bool = False) -> list[dict]:
     """
     Walk outputs/3_training/ and return metadata for every fine-tuned model.
 
@@ -52,14 +52,23 @@ def discover_models(training_root: str) -> list[dict]:
         if not os.path.isdir(model_dir) or model_slug == "baselines":
             continue
         for run_name in os.listdir(model_dir):
+            is_specialist = "__specialist" in run_name
+            if specialists != is_specialist:
+                continue
+
             run_dir = os.path.join(model_dir, run_name)
             model_path = os.path.join(run_dir, "model")
             if not os.path.isdir(model_path):
                 continue
 
-            parts = run_name.split("__", 1)
-            dataset    = parts[0]
-            density_tag = parts[1] if len(parts) > 1 else "unknown"
+            if "__specialist" in run_name:
+                group = run_name.split("__specialist")[0]
+                dataset = f"spec_{group}"
+                density_tag = run_name.replace(f"{group}__", "")
+            else:
+                parts = run_name.split("__", 1)
+                dataset    = parts[0]
+                density_tag = parts[1] if len(parts) > 1 else "unknown"
 
             models.append({
                 "run_name":    f"{model_slug}__{run_name}",
@@ -153,7 +162,7 @@ def _parse_density_tag(tag: str) -> dict:
         density_k5_ratio
         density_pca_k100_ratio
     """
-    if tag == "no_density":
+    if "no_density" in tag:
         return {"weighted": False, "space": None, "k": None}
 
     weighted = True
@@ -175,6 +184,7 @@ def evaluate_all(
     bootstrap: bool = True,
     n_bootstrap: int = 1000,
     base_models: list[str] = None,
+    specialists: bool = False,
 ) -> pd.DataFrame:
     """
     Evaluate all discovered models on the Russian annotated test set.
@@ -203,7 +213,7 @@ def evaluate_all(
     y_true  = df_test["label"].map(label2id).fillna(df_test["label"]).astype(int).values
     logger.info("Test set: %d samples  (hate=%d, no_hate=%d)", len(y_true), y_true.sum(), (y_true == 0).sum())
 
-    models = discover_models(training_root)
+    models = discover_models(training_root, specialists=specialists)
     if base_models:
         for b_model in base_models:
             models.append({
