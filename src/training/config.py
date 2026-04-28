@@ -41,9 +41,18 @@ class TrainingConfig:
     # ---- Output ----
     output_root: str = "outputs/3_training"
 
-    # ---- Baselines ----
+    # ---- Ollama baselines ----
     ollama_api: str = "http://localhost:11434"
     ollama_model: str = "gemma3:4b"
+
+    # ---- Unsloth LLM fine-tuning ----
+    unsloth_model: str = "unsloth/gemma-4-E2B-it"
+    lora_r: int = 8
+    lora_alpha: int = 8
+    llm_train_size: int = 5000
+    llm_max_steps: int = 200
+    llm_batch_size: int = 1
+    llm_learning_rate: float = 2e-4
 
     @property
     def label2id(self) -> dict:

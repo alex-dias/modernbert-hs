@@ -59,5 +59,15 @@ training:
   max_length: 128
   random_state: 42
 
+llm_finetuning:
+  output_root: outputs/3_training
+  unsloth_model: unsloth/gemma-4-E2B-it
+  lora_r: 8
+  lora_alpha: 8
+  train_size: 5000        # number of density-weighted samples for SFT
+  max_steps: 200          # cap for quick iteration; increase for full runs
+  batch_size: 1
+  learning_rate: 2e-4
+
 evaluation:
   output_root: outputs/4_evaluation
