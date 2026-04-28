@@ -84,28 +84,35 @@ def load_density_dataset(
         raw_train = train_df[config.density_column].values.astype(float)
 
         # 1. Temperature smoothing to reduce extreme skew
-        raw_train = raw_train ** 0.5
+        # raw_train = raw_train ** 0.5
 
         # 2. Log-space centering
-        raw_train = np.log1p(raw_train)
+        # raw_train = np.log1p(raw_train)
 
         # 3. Aggressive clipping to eliminate extreme outliers and underflow
-        min_allowed = np.percentile(raw_train, 1)
+        # min_allowed = np.percentile(raw_train, 1)
         max_allowed = np.percentile(raw_train, 99)
-        raw_train = np.clip(raw_train, a_min=min_allowed, a_max=max_allowed)
+        # raw_train = np.clip(raw_train, a_min=min_allowed, a_max=max_allowed)
+
+        raw_train = np.clip(raw_train, a_min=None, a_max=max_allowed)
 
         # 4. Shift to strictly positive and normalize to mean=1
         min_val = raw_train.min()
         raw_train = raw_train - min_val + 1e-6
 
         train_weights = raw_train / raw_train.mean()
+
+
         # Test weights (using the exact same normalization parameters as train)
+        # raw_test = test_df[config.density_column].values.astype(float)
+        # raw_test = raw_test ** 0.5
+        # raw_test = np.log1p(raw_test)
+        # raw_test = np.clip(raw_test, a_min=min_allowed, a_max=max_allowed)
+
         raw_test = test_df[config.density_column].values.astype(float)
-        raw_test = raw_test ** 0.5
-        raw_test = np.log1p(raw_test)
-        raw_test = np.clip(raw_test, a_min=min_allowed, a_max=max_allowed)
+        raw_test = np.clip(raw_test, a_min=None, a_max=max_allowed)
         raw_test = raw_test - min_val + 1e-6
-        test_weights = raw_test / raw_train.mean()
+        test_weights = raw_test / raw_test.mean()
 
         weights = {"train": train_weights, "test": test_weights}
 
