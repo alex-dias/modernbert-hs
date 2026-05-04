@@ -390,6 +390,15 @@ def evaluate_ensemble(
         json.dump(metrics, f, indent=2)
     logger.info("Ensemble metrics saved → %s", out_path)
 
+    predictions_dir = os.path.join(output_dir, "predictions")
+    os.makedirs(predictions_dir, exist_ok=True)
+    pd.DataFrame({
+        "y_true": y_true,
+        "y_prob": y_prob,
+        "y_pred": (y_prob >= 0.5).astype(int),
+    }).to_csv(os.path.join(predictions_dir, f"{run_tag}.csv"), index=False)
+    logger.info("Predictions saved → %s/predictions/%s.csv", output_dir, run_tag)
+
     # Save confusion matrix
     _save_confusion_matrix(y_true, y_prob, run_tag, plots_dir)
 

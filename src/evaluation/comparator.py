@@ -201,10 +201,12 @@ def evaluate_all(
     DataFrame with one row per model and columns for all metrics.
     """
     os.makedirs(output_dir, exist_ok=True)
-    confusion_dir = os.path.join(output_dir, "confusion")
-    plots_dir     = os.path.join(output_dir, "plots")
+    confusion_dir    = os.path.join(output_dir, "confusion")
+    plots_dir        = os.path.join(output_dir, "plots")
+    predictions_dir  = os.path.join(output_dir, "predictions")
     os.makedirs(confusion_dir, exist_ok=True)
     os.makedirs(plots_dir, exist_ok=True)
+    os.makedirs(predictions_dir, exist_ok=True)
 
     # Load test set
     df_test = pd.read_csv(test_csv)
@@ -256,6 +258,13 @@ def evaluate_all(
 
         rows.append(row)
         _save_confusion_matrix(y_true, y_prob, run_name, confusion_dir)
+
+        safe = run_name.replace("/", "_").replace("\\", "_")
+        pd.DataFrame({
+            "y_true": y_true,
+            "y_prob": y_prob,
+            "y_pred": (y_prob >= 0.5).astype(int),
+        }).to_csv(os.path.join(predictions_dir, f"{safe}.csv"), index=False)
 
     # Add LLM baselines (already have metrics, no inference needed)
     for bl in discover_baselines(training_root):
