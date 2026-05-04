@@ -107,15 +107,14 @@ def discover_baselines(training_root: str) -> list[dict]:
 # Inference
 # ---------------------------------------------------------------------------
 
-def _get_probabilities(
-    model_path: str,
-    texts: list[str],
-    batch_size: int = 32,
-    max_length: int = 128,
-) -> np.ndarray:
-    """Run inference and return probability of the positive (hate) class."""
+def load_inference_model(model_path: str):
+    """
+    Load model and tokenizer from path. 
+    Returns (model, tokenizer, hate_idx).
+    """
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     tokenizer = AutoTokenizer.from_pretrained(model_path)
+    
     # Monkey-patch to bypass the strict PyTorch 2.6 requirement for torch.load
     import transformers.utils.import_utils
     import transformers.modeling_utils
@@ -133,6 +132,27 @@ def _get_probabilities(
         (i for i, l in id2label.items() if "hate" in str(l).lower() and "no" not in str(l).lower()),
         1,
     )
+    return model, tokenizer, hate_idx
+
+
+def _get_probabilities(
+    model_path: str = None,
+    texts: list[str] = [],
+    batch_size: int = 32,
+    max_length: int = 128,
+    model = None,
+    tokenizer = None,
+    hate_idx = None,
+) -> np.ndarray:
+    """Run inference and return probability of the positive (hate) class."""
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    
+    should_unload = False
+    if model is None:
+        if model_path is None:
+            raise ValueError("Either model_path or model/tokenizer/hate_idx must be provided.")
+        model, tokenizer, hate_idx = load_inference_model(model_path)
+        should_unload = True
 
     probs = []
     with torch.no_grad():
@@ -144,9 +164,10 @@ def _get_probabilities(
             batch_probs = torch.softmax(logits, dim=1)[:, hate_idx].cpu().numpy()
             probs.extend(batch_probs.tolist())
 
-    del model
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
+    if should_unload:
+        del model
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
 
     return np.array(probs, dtype=float)
 
