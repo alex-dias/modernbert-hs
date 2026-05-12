@@ -74,6 +74,28 @@ class RussianProcessor(BaseProcessor):
 
         return out
 
+    def load_full_corpus_df(self) -> pd.DataFrame:
+        """
+        Load the full unlabeled Russian corpus as a DataFrame, preserving all
+        original columns (Date, Tweet Treated, Tweet Raw, Url, Id) and adding
+        a normalised 'text' column for inference.
+        """
+        if self.full_corpus_path is None:
+            raise ValueError("[Russian] full_corpus_path was not provided.")
+        if not os.path.exists(self.full_corpus_path):
+            raise FileNotFoundError(f"[Russian] Full corpus not found: {self.full_corpus_path}")
+
+        df = pd.read_csv(self.full_corpus_path)
+        col_map = {c.lower().strip(): c for c in df.columns}
+        text_col = col_map.get("tweet treated") or col_map.get("text") or col_map.get("tweet")
+
+        if text_col is None:
+            raise ValueError(f"[Russian] Cannot find text column in full corpus. Found: {list(df.columns)}")
+
+        df["text"] = df[text_col].astype(str).str.strip()
+        print(f"  [Russian] Loaded {len(df)} rows from full corpus")
+        return df
+
     def load_full_corpus(self) -> list[str]:
         """
         Load the full unlabeled Russian corpus for embedding generation.
