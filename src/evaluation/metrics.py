@@ -12,6 +12,8 @@ from sklearn.metrics import (
     roc_auc_score,
     precision_recall_fscore_support,
     confusion_matrix,
+    precision_recall_curve,
+    auc,
 )
 
 
@@ -27,16 +29,22 @@ def compute_metrics(y_true: np.ndarray, y_prob: np.ndarray, threshold: float = 0
 
     Returns
     -------
-    dict with keys: accuracy, balanced_accuracy, precision, recall, f1, auc_roc
+    dict with keys: accuracy, balanced_accuracy, precision, recall, f1, auc_roc, pr_auc
     """
     y_pred = (y_prob >= threshold).astype(int)
     prec, rec, f1, _ = precision_recall_fscore_support(
         y_true, y_pred, average="binary", zero_division=0
     )
     try:
-        auc = roc_auc_score(y_true, y_prob)
+        roc_auc = roc_auc_score(y_true, y_prob)
     except ValueError:
-        auc = float("nan")
+        roc_auc = float("nan")
+
+    try:
+        prec_curve, rec_curve, _ = precision_recall_curve(y_true, y_prob)
+        pr_auc = auc(rec_curve, prec_curve)
+    except ValueError:
+        pr_auc = float("nan")
 
     return {
         "accuracy":          float(accuracy_score(y_true, y_pred)),
@@ -44,7 +52,8 @@ def compute_metrics(y_true: np.ndarray, y_prob: np.ndarray, threshold: float = 0
         "precision":         float(prec),
         "recall":            float(rec),
         "f1":                float(f1),
-        "auc_roc":           float(auc),
+        "auc_roc":           float(roc_auc),
+        "pr_auc":            float(pr_auc),
     }
 
 
@@ -63,7 +72,7 @@ def bootstrap_ci(
     ----------
     y_true       : ground-truth labels
     y_prob       : predicted probabilities
-    metric       : one of accuracy | balanced_accuracy | f1 | auc_roc
+    metric       : one of accuracy | balanced_accuracy | f1 | auc_roc | pr_auc
     n_bootstrap  : number of resampling iterations
     ci           : confidence level (e.g. 95 for 95%)
     random_state : RNG seed

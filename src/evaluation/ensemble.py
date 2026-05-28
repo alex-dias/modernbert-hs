@@ -366,7 +366,10 @@ def evaluate_ensemble(
     # --- Metrics ---
     metrics = compute_metrics(y_true, y_prob)
     slug_tag = f"_{model_slug}" if model_slug else ""
-    run_tag = f"ensemble{slug_tag}_{voting}_{space}_k{k}"
+    if voting == "weighted_average":
+        run_tag = f"ensemble{slug_tag}_{voting}_{space}_k{k}_{norm_method}_t{norm_temperature}"
+    else:
+        run_tag = f"ensemble{slug_tag}_{voting}_{space}_k{k}"
 
     if bootstrap:
         ci = bootstrap_ci(y_true, y_prob, metric="f1", n_bootstrap=n_bootstrap)
