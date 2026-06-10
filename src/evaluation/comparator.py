@@ -307,6 +307,7 @@ def evaluate_all(
                 "f1":            m.get("f1"),
                 "auc_roc":       None,
                 "pr_auc":        None,
+                "ap":            None,
             })
 
     results = pd.DataFrame(rows).sort_values("f1", ascending=False).reset_index(drop=True)
@@ -362,7 +363,7 @@ def _plot_f1_comparison(results: pd.DataFrame, plots_dir: str):
 
 
 def _plot_metric_heatmap(results: pd.DataFrame, plots_dir: str):
-    metric_cols = ["accuracy", "balanced_accuracy", "f1", "auc_roc", "pr_auc"]
+    metric_cols = ["accuracy", "balanced_accuracy", "f1", "auc_roc", "pr_auc", "ap"]
     df = results.dropna(subset=["f1"]).set_index("run_name")[
         [c for c in metric_cols if c in results.columns]
     ].astype(float)

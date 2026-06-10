@@ -14,6 +14,7 @@ from sklearn.metrics import (
     confusion_matrix,
     precision_recall_curve,
     auc,
+    average_precision_score,
 )
 
 
@@ -29,7 +30,7 @@ def compute_metrics(y_true: np.ndarray, y_prob: np.ndarray, threshold: float = 0
 
     Returns
     -------
-    dict with keys: accuracy, balanced_accuracy, precision, recall, f1, auc_roc, pr_auc
+    dict with keys: accuracy, balanced_accuracy, precision, recall, f1, auc_roc, pr_auc, ap
     """
     y_pred = (y_prob >= threshold).astype(int)
     prec, rec, f1, _ = precision_recall_fscore_support(
@@ -46,6 +47,11 @@ def compute_metrics(y_true: np.ndarray, y_prob: np.ndarray, threshold: float = 0
     except ValueError:
         pr_auc = float("nan")
 
+    try:
+        ap = average_precision_score(y_true, y_prob)
+    except ValueError:
+        ap = float("nan")
+
     return {
         "accuracy":          float(accuracy_score(y_true, y_pred)),
         "balanced_accuracy": float(balanced_accuracy_score(y_true, y_pred)),
@@ -54,6 +60,7 @@ def compute_metrics(y_true: np.ndarray, y_prob: np.ndarray, threshold: float = 0
         "f1":                float(f1),
         "auc_roc":           float(roc_auc),
         "pr_auc":            float(pr_auc),
+        "ap":                float(ap),
     }
 
 
